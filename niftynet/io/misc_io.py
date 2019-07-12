@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 """Utilities functions for file and path management"""
-
 from __future__ import absolute_import, print_function, unicode_literals
 
 import errno
@@ -14,6 +13,7 @@ import warnings
 import nibabel as nib
 import numpy as np
 import scipy.ndimage
+import pandas as pd
 import tensorflow as tf
 # pylint: disable=no-name-in-module
 from tensorflow.core.framework import summary_pb2
@@ -255,6 +255,18 @@ def do_resampling(data_array, pixdim_init, pixdim_fin, interp_order):
             data_mod.append(data_new[..., np.newaxis, np.newaxis])
         data_resampled.append(np.concatenate(data_mod, axis=-1))
     return np.concatenate(data_resampled, axis=-2)
+
+
+def save_csv_array(filefolder, filename, array_to_save):
+    '''
+    Save a np array as a csv
+    :param filefolder: Path to the folder where to save
+    :param filename: Name of the file to save
+    :param array_to_save: Array to save
+    :return:
+    '''
+    pd_array = pd.DataFrame(array_to_save)
+    pd_array.to_csv(os.path.join(filefolder, filename))
 
 
 def save_data_array(filefolder,
@@ -753,9 +765,18 @@ def set_logger(file_name=None):
     :return:
     """
     # pylint: disable=no-name-in-module
-    from tensorflow.python.platform.tf_logging import _get_logger
+    # This is done so if the user had TF 1.12.1 or a new version the code
+    # does not brake. First part of the try is renaming the TF 1.12.1 to
+    # fit the TF 1.13.1>= naming scheme, while the second is just a normal
+    # import for TF 1.13.1>=
+    try:
+        # pylint: disable=no-name-in-module
+        from tensorflow.python.platform.tf_logging import \
+            _get_logger as get_logger
+    except ImportError:
+        from tensorflow.python.platform.tf_logging import get_logger
 
-    logger = _get_logger()
+    logger = get_logger()
     tf.logging.set_verbosity(tf.logging.INFO)
     logger.handlers = []
 
@@ -780,9 +801,18 @@ def close_logger():
     :return:
     """
     # pylint: disable=no-name-in-module
-    from tensorflow.python.platform.tf_logging import _get_logger
+    # This is done so if the user had TF 1.12.1 or a new version the code
+    # does not brake. First part of the try is renaming the TF 1.12.1 to
+    # fit the TF 1.13.1>= naming scheme, while the second is just a normal
+    # import for TF 1.13.1>=
+    try:
+        # pylint: disable=no-name-in-module
+        from tensorflow.python.platform.tf_logging import \
+            _get_logger as get_logger
+    except ImportError:
+        from tensorflow.python.platform.tf_logging import get_logger
 
-    logger = _get_logger()
+    logger = get_logger()
     for handler in reversed(logger.handlers):
         try:
             handler.flush()
@@ -790,6 +820,7 @@ def close_logger():
             logger.removeHandler(handler)
         except (OSError, ValueError):
             pass
+
 
 
 def infer_latest_model_file(model_dir):
